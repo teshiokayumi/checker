@@ -14,7 +14,6 @@
 <header class="bar">
   <div class="brand">
     <h1>会見録チェッカー</h1>
-    <p>表記メモに沿って修正箇所を示します。本文は書き換えません。</p>
     <p>表記メモと用字用例に沿って修正箇所を示します。本文は書き換えず、修正文は別に作れます。</p>
   </div>
   <div class="controls">
@@ -45,7 +44,6 @@
     <div class="doc-scroll" id="doc-scroll">
       <article class="doc" id="doc"></article>
     </div>
-    <div class="pane-foot"><span id="doc-stats"></span><button type="button" class="link" id="monthly-badge"></button></div>
     <div class="pane-foot"><span id="doc-stats"></span><span class="foot-links"><button type="button" class="link" id="yoji-badge"></button><button type="button" class="link" id="monthly-badge"></button></span></div>
   </section>
 
@@ -62,6 +60,29 @@
     </div>
     <div class="filters">
       <div class="chips" id="chips"></div>
+      <label class="check"><input type="checkbox" id="only-open"> 未確認のみ</label>
+    </div>
+    <ol class="items" id="items"></ol>
+  </section>
+</main>
+
+<div class="drop" id="drop" hidden><p>ここにWordファイルをドロップ</p></div>
+
+<div class="sheet-wrap" id="paste-sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="paste-title">
+    <div class="sheet-head">
+      <h2 id="paste-title">テキストを貼り付け</h2>
+      <button class="btn btn-icon" type="button" data-close title="閉じる">×</button>
+    </div>
+    <textarea id="paste-text" rows="14" placeholder="文字起こしの本文を貼り付けてください"></textarea>
+    <div class="sheet-foot">
+      <button class="btn" type="button" data-close>キャンセル</button>
+      <button class="btn btn-primary" type="button" id="paste-run">チェックする</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="rules-sheet" hidden>
   <div class="sheet sheet-wide" role="dialog" aria-modal="true" aria-labelledby="rules-title">
     <div class="sheet-head">
       <h2 id="rules-title">ルール</h2>

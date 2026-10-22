@@ -65,3 +65,25 @@ const yp = yi.map((i) => `${i.text}→${i.suggest}`);
 assert.ok(yi.find((i) => i.text === '行').check, '補助動詞は要確認');
 const yt = (t) => C.check([t], { yoji }).filter((i) => i.cat === 'yoji').map((i) => `${i.text}→${i.suggest}`);
 assert.deepStrictEqual(yt('尚且つ、事故に注意し、同様に、お客様にも'), ['尚且つ→なおかつ']);   // 長いほうだけ・熟語は対象外
+assert.deepStrictEqual(yt('一致しました。出来事と出来高。又は'), []);
+assert.deepStrictEqual(C.check(['両者の齟齬'], { yoji }).find((i) => i.cat === 'yoji').cands, ['食い違い', 'ずれ']);
+const yr = C.yojiRules('？従って→したがって # 接続詞のとき\n/出来(?=る)/→でき\nメモだけの行');
+assert.strictEqual(yr.length, 2);
+assert.ok(yr[0].check && yr[0].note.includes('接続詞のとき'));
+assert.strictEqual(C.check(['「斡旋」と'], { yoji: '斡旋→あっせん' }).length, 0);   // 「」内は対象外
+
+// 修正文：元の段落は変えず、重なる指摘は片方だけ反映
+const src = ['予め下さい', 'そのまま'];
+const fx = C.applyFixes(src, [
+  { p: 0, start: 0, end: 2, text: '予め', suggest: 'あらかじめ' },
+  { p: 0, start: 1, end: 3, text: 'め下', suggest: 'X' },
+  { p: 0, start: 2, end: 4, text: '下さ', suggest: 'くださ' },
+]);
+assert.deepStrictEqual(fx.paragraphs, ['あらかじめください', 'そのまま']);
+assert.strictEqual(fx.conflicts.length, 1);
+assert.deepStrictEqual(fx.applied.map((a) => [a.newStart, a.newEnd]), [[0, 5], [5, 8]]);
+assert.deepStrictEqual(src, ['予め下さい', 'そのまま']);
+const all = C.applyFixes(paras, C.check(paras, { mode: 'teirei', yoji }).filter((i) => !i.check)).paragraphs;
+assert.ok(all.some((t) => t.includes('あらかじめ窓口にご相談ください')));
+
+console.log(`ok (${issues.length} issues)`);

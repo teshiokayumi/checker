@@ -66,3 +66,162 @@
       const to = parts.length > 1 ? parts.slice(1).join('') : '';
       if (!from) return;
       let re;
+      const rx = from.match(/^\/(.+)\/$/);
+      try { re = new RegExp(rx ? rx[1] : escRe(from), 'g'); } catch (e) { return; }
+      out.push({ id: 'user:' + i, cat: 'user', from, to, re,
+        note: memo || (to ? `「${from}」→「${to}」` : `「${from}」は削除`) });
+    });
+    return out;
+  }
+
+  // 今月の用語：1行に「正しい表記」または「誤表記→正しい表記 # メモ」
+  // 正しい表記は他のチェックの対象外にし、途中のひらがな・漢字だけが違う表記（熊本心のケアセンター など）も指摘する
+  function monthlyRules(text) {
+    const { K, HIRA, KATA } = CHARS;
+    const rules = [], terms = [];
+    const type = (c) => (new RegExp(`[${HIRA}]`).test(c) ? 'h' : new RegExp(`[${K}]`).test(c) ? 'k' : new RegExp(`[${KATA}]`).test(c) ? 'c' : 'o');
+    String(text || '').split(/\r?\n/).forEach((line, i) => {
+      const body = line.replace(/\s+#.*$/, '').trim();
+      if (!body || body.startsWith('#')) return;
+      const memo = (line.match(/\s#\s*(.*)$/) || [])[1] || '';
+      const parts = body.split(/\s*(?:→|->|=>|⇒)\s*/);
+      if (parts.length > 1) {
+        const [from, to] = [parts[0], parts.slice(1).join('')];
+        if (!from || !to) return;
+        terms.push(to);
+        rules.push({ id: 'monthly:' + i, cat: 'monthly', from, to, protect: 'none', re: new RegExp(escRe(from), 'g'),
+          note: memo || `今月の用語：「${to}」と表記` });
+        return;
+      }
+      const term = body;
+      terms.push(term);
+      const runs = [];
+      for (const c of term) {
+        const t = type(c);
+        if (runs.length && runs[runs.length - 1].t === t) runs[runs.length - 1].s += c;
+        else runs.push({ t, s: c });
+      }
+      const loose = (r, j) => j > 0 && j < runs.length - 1 && (r.t === 'h' || r.t === 'k');
+      if (!runs.some(loose)) return;
+      const src = runs.map((r, j) => (loose(r, j) ? `[${HIRA}${K}${KATA}]{1,${r.s.length * 3}}` : escRe(r.s))).join('');
+      rules.push({ id: 'monthly:' + i, cat: 'monthly', from: term, to: term, protect: 'none', re: new RegExp(src, 'g'), check: true,
+        filter: (m) => m[0].length >= term.length * 0.6 && m[0].length <= term.length * 1.5,
+        note: memo || `今月の用語：「${term}」と表記が違う可能性があります` });
+    });
+    return { rules, terms };
+  }
+
+  // 用字用例：1行に「検出→候補 # メモ」。候補は／で複数書ける（最初の候補を修正文に使う）。
+  // 行頭の ？ は「要確認」。検出を /〜/ で囲むと正規表現
+  function yojiRules(text) {
+    const out = [];
+    String(text || '').split(/\r?\n/).forEach((line, i) => {
+      let body = line.replace(/\s+#.*$/, '').trim();
+      if (!body || body.startsWith('#')) return;
+      const memo = (line.match(/\s#\s*(.*)$/) || [])[1] || '';
+      const check = /^[?？]/.test(body);
+      if (check) body = body.slice(1).trim();
+      const parts = body.split(/\s*(?:→|->|=>|⇒)\s*/);
+      if (parts.length < 2) return;
+      const from = parts[0];
+      const cands = parts.slice(1).join('').split(/\s*[／/]\s*/).filter(Boolean);
+      if (!from || !cands.length) return;
+      let re;
+      const rx = from.match(/^\/(.+)\/$/);
+      try { re = new RegExp(rx ? rx[1] : escRe(from), 'g'); } catch (e) { return; }
+      const base = rx ? `用字用例：「${cands.join('」「')}」と表記` : `用字用例：「${from}」→「${cands.join('」「')}」`;
+      out.push({ id: 'yoji:' + i, cat: 'yoji', from: rx ? rx[1] : from, to: cands[0], cands, re, check, pattern: !!rx,
+        note: memo ? `${base}（${memo}）` : base });
+    });
+    return out;
+  }
+
+  const parseList = (text) => String(text || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+
+  /**
+   * paragraphs: string[]
+   * opts: { mode, terms: string[], userRules: string, exclusions: string[], monthly: string, yoji: string }
+   * returns: [{ id, p, start, end, text, suggest, cands?, cat, ruleId, note, check }]
+   */
+  function check(paragraphs, opts = {}) {
+    const mode = opts.mode || 'teirei';
+    const monthly = monthlyRules(opts.monthly);
+    const rules = RULES.filter((r) => !r.mode || r.mode === mode)
+      .concat(termRules(opts.terms), parseUserRules(opts.userRules), monthly.rules, yojiRules(opts.yoji));
+    const exclusions = (opts.exclusions || []).concat(monthly.terms).filter(Boolean);
+    const issues = [];
+    const seen = new Set();
+
+    paragraphs.forEach((text, p) => {
+      const quotes = toRanges(findAll(QUOTE_RE, text));
+      const dots = toRanges(findAll(DOT_RE, text));
+      const excl = [];
+      for (const w of exclusions) excl.push(...toRanges(findAll(new RegExp(escRe(w), 'g'), text)));
+
+      for (const rule of rules) {
+        const protect = rule.protect || 'all';
+        for (const m of findAll(rule.re, text)) {
+          const start = m.index, end = start + m[0].length;
+          if (protect !== 'none' && overlaps(start, end, quotes)) continue;
+          if (protect === 'all' && overlaps(start, end, dots)) continue;
+          if (overlaps(start, end, excl)) continue;
+          if (rule.filter && !rule.filter(m)) continue;
+          const suggest = expand(rule.to, m);
+          if (suggest === m[0]) continue;
+          const key = `${p}:${start}:${end}:${rule.id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const it = { p, start, end, text: m[0], suggest, cat: rule.cat, ruleId: rule.id,
+            note: rule.note, check: !!rule.check };
+          if (rule.cands && rule.cands.length > 1) it.cands = rule.cands;
+          issues.push(it);
+        }
+      }
+    });
+
+    // 用字用例どうしで重なるときは長いほう（尚且つ と 且つ なら 尚且つ）だけを残す
+    const yoji = issues.filter((it) => it.cat === 'yoji');
+    const out = issues.filter((it) => it.cat !== 'yoji' || !yoji.some((o) => o !== it && o.p === it.p
+      && o.start <= it.start && o.end >= it.end && (o.end - o.start > it.end - it.start || o.ruleId < it.ruleId)));
+
+    out.sort((a, b) => a.p - b.p || a.start - b.start || b.end - a.end);
+    out.forEach((it, i) => { it.id = i; });
+    return out;
+  }
+
+  // 指摘を反映した修正文を作る（元の段落は変更しない）。重なる指摘は先に始まる・長いほうを優先し、残りは conflicts に入れる
+  function applyFixes(paragraphs, issues) {
+    const byP = new Map();
+    for (const it of issues) {
+      if (!byP.has(it.p)) byP.set(it.p, []);
+      byP.get(it.p).push(it);
+    }
+    const applied = [], conflicts = [];
+    const out = paragraphs.map((text, p) => {
+      const list = (byP.get(p) || []).slice().sort((a, b) => a.start - b.start || b.end - a.end);
+      let res = '', pos = 0;
+      for (const it of list) {
+        if (it.start < pos) { conflicts.push(it); continue; }
+        res += text.slice(pos, it.start);
+        applied.push({ ...it, newStart: res.length, newEnd: res.length + it.suggest.length });
+        res += it.suggest;
+        pos = it.end;
+      }
+      return res + text.slice(pos);
+    });
+    return { paragraphs: out, applied, conflicts };
+  }
+
+  // 本文から会見の種別を推定（見つからなければ null）
+  function detectMode(paragraphs) {
+    const head = paragraphs.slice(0, 15).join('\n');
+    if (/お出かけ知事室/.test(head)) return 'odekake';
+    if (/定例(?:記者)?会見/.test(head)) return 'teirei';
+    return null;
+  }
+
+  // Word から取り出したテキストを段落に分ける
+  const toParagraphs = (raw) => String(raw || '').replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim() !== '');
+
+  return { check, applyFixes, detectMode, toParagraphs, parseUserRules, parseList, termRules, monthlyRules, yojiRules };
+});
