@@ -54,4 +54,14 @@ assert.strictEqual(ex[0].suggest, '熊本こころのケアセンター');
 assert.strictEqual(ex[0].note, '正式名称');
 assert.strictEqual(C.check(['私は熊本心のケアセンターへ'], { monthly: '熊本こころのケアセンター' })[0].text, '熊本心のケアセンター');
 
-console.log(`ok (${issues.length} issues)`);
+// 用字用例（用字用例.txt を実際に読み込む）
+let yoji = '';
+global.KAIKEN_YOJI = (t) => { yoji = t; };
+require('vm').runInThisContext(fs.readFileSync(path.join(__dirname, '..', '用字用例.txt'), 'utf8'));
+assert.ok(C.yojiRules(yoji).length > 100);
+const yi = C.check(paras, { mode: 'teirei', yoji }).filter((i) => i.cat === 'yoji');
+const yp = yi.map((i) => `${i.text}→${i.suggest}`);
+['予め→あらかじめ', '下さ→くださ', '斡旋→あっせん', '出来→でき', '様→よう', '行→い'].forEach((s) => assert.ok(yp.includes(s), `yoji missing: ${s}\n${yp.join('\n')}`));
+assert.ok(yi.find((i) => i.text === '行').check, '補助動詞は要確認');
+const yt = (t) => C.check([t], { yoji }).filter((i) => i.cat === 'yoji').map((i) => `${i.text}→${i.suggest}`);
+assert.deepStrictEqual(yt('尚且つ、事故に注意し、同様に、お客様にも'), ['尚且つ→なおかつ']);   // 長いほうだけ・熟語は対象外
