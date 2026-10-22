@@ -1,64 +1,83 @@
-<!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>会見録チェッカー</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDPMincho&display=swap">
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-<header class="bar">
-  <div class="brand">
-    <h1>会見録チェッカー</h1>
-    <p>表記メモに沿って修正箇所を示します。本文は書き換えません。</p>
-    <p>表記メモと用字用例に沿って修正箇所を示します。本文は書き換えず、修正文は別に作れます。</p>
-  </div>
-  <div class="controls">
-    <label class="btn btn-primary" for="file-input">Wordを開く
-      <input id="file-input" type="file" accept=".docx,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
-    </label>
-    <button class="btn" id="paste-open" type="button">テキストを貼り付け</button>
-    <div class="seg" role="radiogroup" aria-label="会見の種別" id="mode-seg">
-      <button type="button" role="radio" data-mode="teirei" id="mode-teirei">定例記者会見</button>
-      <button type="button" role="radio" data-mode="odekake" id="mode-odekake">お出かけ知事室</button>
+  <div class="sheet sheet-wide" role="dialog" aria-modal="true" aria-labelledby="rules-title">
+    <div class="sheet-head">
+      <h2 id="rules-title">ルール</h2>
+      <button class="btn btn-icon" type="button" data-close title="閉じる">×</button>
     </div>
-    <div class="size" aria-label="本文の文字サイズ">
-      <button class="btn btn-icon" id="size-down" type="button" title="文字を小さく">A−</button>
-      <button class="btn btn-icon" id="size-up" type="button" title="文字を大きく">A＋</button>
-    </div>
-    <button class="btn" id="theme-toggle" type="button" title="表示テーマを切り替え">テーマ：自動</button>
-    <button class="btn" id="rules-open" type="button">ルール</button>
-  </div>
-</header>
-
-<main class="panes">
-  <section class="pane pane-doc" aria-label="Word本文">
-    <div class="pane-head">
-      <h2 id="doc-name">サンプル原稿</h2>
-      <span class="tag" id="doc-tag">サンプル</span>
-      <span class="mode-hint" id="mode-hint"></span>
-    </div>
-    <div class="doc-scroll" id="doc-scroll">
-      <article class="doc" id="doc"></article>
-    </div>
-    <div class="pane-foot"><span id="doc-stats"></span><button type="button" class="link" id="monthly-badge"></button></div>
-    <div class="pane-foot"><span id="doc-stats"></span><span class="foot-links"><button type="button" class="link" id="yoji-badge"></button><button type="button" class="link" id="monthly-badge"></button></span></div>
-  </section>
-
-  <section class="pane pane-issues" aria-label="修正箇所">
-    <div class="pane-head issues-head">
-      <h2>修正箇所 <span class="count" id="count-total">0</span></h2>
-      <span class="sub" id="count-open"></span>
-      <div class="nav">
-        <button class="btn btn-icon" id="prev" type="button" title="前の箇所（K）">↑</button>
-        <button class="btn btn-icon" id="next" type="button" title="次の箇所（J）">↓</button>
-        <button class="btn" id="copy-all" type="button">一覧をコピー</button>
-        <button class="btn btn-primary" id="fix-open" type="button">修正文を作成</button>
+    <div class="sheet-body">
+      <section class="monthly cat-monthly" aria-labelledby="monthly-title">
+        <h3 id="monthly-title">今月の用語 <span class="sub" id="monthly-count"></span></h3>
+        <ul class="monthly-list" id="monthly-list"></ul>
+        <p class="monthly-warn" id="monthly-warn" hidden>「今月の用語.txt」を読み込めませんでした。index.html と同じフォルダにあるか、「ここから」「ここまで」の行や記号 ` を消していないか確認してください。</p>
+        <p class="field-help">チェッカーと同じフォルダの <code>今月の用語.txt</code> をメモ帳で開き、1行に1語ずつ追加して保存すると、このフォルダを使う全員に反映されます（開き直すと反映）。誤りやすい表記は <code>熊本心のケアセンター→熊本こころのケアセンター</code> のように書けます。</p>
+      </section>
+      <section class="monthly cat-yoji" aria-labelledby="yoji-title">
+        <h3 id="yoji-title">用字用例 <span class="sub" id="yoji-count"></span></h3>
+        <ul class="monthly-list yoji-list" id="yoji-list"></ul>
+        <p class="monthly-warn" id="yoji-warn" hidden>「用字用例.txt」を読み込めませんでした。index.html と同じフォルダにあるか、「ここから」「ここまで」の行や記号 ` を消していないか確認してください。</p>
+        <p class="field-help">標準用字用例辞典の書きかえ・言いかえは、チェッカーと同じフォルダの <code>用字用例.txt</code> に <code>斡旋→あっせん</code> のように1行に1つ書きます。候補が複数なら <code>齟齬→食い違い／ずれ</code>、文脈で直さないこともある語は行頭に <code>？</code> を付けます。</p>
+      </section>
+      <h3>このパソコンだけのルール</h3>
+      <div class="fields">
+        <label class="field" for="terms-text">
+          <span class="field-label">資料表記（そのまま使う語）</span>
+          <span class="field-help">資料にある「」付き・中点付きの語を1行に1つ。かぎかっこ抜けや中点抜けを指摘します。</span>
+          <textarea id="terms-text" rows="5"></textarea>
+        </label>
+        <label class="field" for="user-text">
+          <span class="field-label">追加ルール</span>
+          <span class="field-help">1行に「検出→候補 # メモ」。候補を空にすると削除の指摘になります。</span>
+          <textarea id="user-text" rows="5" placeholder="皆様→皆さま # 例"></textarea>
+        </label>
+        <label class="field" for="excl-text">
+          <span class="field-label">除外語（指摘しない語）</span>
+          <span class="field-help">この語に重なる指摘は出しません。1行に1つ。</span>
+          <textarea id="excl-text" rows="5" placeholder="世の中"></textarea>
+        </label>
+      </div>
+      <div class="sheet-foot sheet-foot-inline">
+        <span class="saved" id="rules-saved" hidden>保存しました</span>
+        <button class="btn btn-primary" type="button" id="rules-save">保存して再チェック</button>
+      </div>
+      <h3>組み込みルール</h3>
+      <div class="table-wrap">
+        <table class="rule-table">
+          <thead><tr><th>分類</th><th>検出</th><th>候補</th><th>説明</th></tr></thead>
+          <tbody id="rule-rows"></tbody>
+        </table>
       </div>
     </div>
-    <div class="filters">
-      <div class="chips" id="chips"></div>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="fix-sheet" hidden>
+  <div class="sheet sheet-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title">
+    <div class="sheet-head">
+      <h2 id="fix-title">修正文 <span class="sub" id="fix-summary"></span></h2>
+      <button class="btn btn-icon" type="button" data-close title="閉じる">×</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fix-opts">
+        <label class="check"><input type="checkbox" id="fix-check"> 「要確認」の指摘もすべて反映する</label>
+        <span class="field-help">対象外にした指摘と、非表示の分類は反映しません。「要確認」は確認済みにしたものだけ反映します。元の本文は変わりません。</span>
+      </div>
+      <div class="fix-scroll"><article class="doc fix-doc" id="fix-doc"></article></div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn" type="button" id="fix-download">テキストで保存</button>
+      <button class="btn btn-primary" type="button" id="fix-copy">修正文をコピー</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="vendor/mammoth.browser.min.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/checker.js"></script>
+<script>function KAIKEN_MONTHLY(text) { window.KaikenMonthly = String(text); }</script>
+<script src="今月の用語.txt" charset="utf-8"></script>
+<script>function KAIKEN_YOJI(text) { window.KaikenYoji = String(text); }</script>
+<script src="用字用例.txt" charset="utf-8"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
