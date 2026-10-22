@@ -15,6 +15,7 @@
     'いわゆるインバウンドとか、若い世代とか、そういう方々にも分かるような形で、、情報を届けていくっていうことが大事だと思っています。',
     'なお、九州・山口の「ブルゴーニュ」と呼ばれる産地の皆さんとは、期間中に意見が分かれる点も含めて協議します。',
     'また、熊本心のケアセンターと連携し、熊本こころのケアセンターの相談窓口も周知していきます。',
+    '補助金の申請については、予め窓口にご相談下さい。県としても、関係機関への斡旋を行い、早期に支給出来る様に努めて行きたいと考えています。',
     'では、私からは以上です。',
   ];
 
@@ -34,8 +35,11 @@
     userRules: store.get('userRules', ''),
     exclusions: store.get('exclusions', ''),
     monthly: typeof window.KaikenMonthly === 'string' ? window.KaikenMonthly : null,
+    yoji: typeof window.KaikenYoji === 'string' ? window.KaikenYoji : null,
     issues: [],
     status: {},              // id -> 'done' | 'skip'
+    choice: {},              // id -> 選んだ候補（候補が複数ある用字用例）
+    fixAll: false,           // 修正文に「要確認」もすべて反映する
     hidden: new Set(),       // 非表示の分類
     onlyOpen: false,
     active: null,
@@ -71,12 +75,15 @@
       userRules: state.userRules,
       exclusions: C.parseList(state.exclusions),
       monthly: state.monthly || '',
+      yoji: state.yoji || '',
     });
     state.status = {};
+    state.choice = {};
     state.active = null;
     render();
   }
 
+  const suggestOf = (it) => state.choice[it.id] ?? it.suggest;
   const visible = (it) => !state.hidden.has(it.cat) && (!state.onlyOpen || !state.status[it.id]);
 
   function render() {
@@ -95,6 +102,7 @@
     const chars = state.paragraphs.reduce((n, p) => n + p.length, 0);
     $('doc-stats').textContent = `${state.paragraphs.length} 段落 ・ ${chars.toLocaleString()} 字`;
     $('monthly-badge').textContent = state.monthly === null ? '今月の用語：読み込めません' : `今月の用語：${monthlyTerms().length}語`;
+    $('yoji-badge').textContent = state.yoji === null ? '用字用例：読み込めません' : `用字用例：${yojiList().length}語`;
     document.documentElement.style.setProperty('--doc-size', state.size + 'px');
     const themeLabel = { system: '自動', light: 'ライト', dark: 'ダーク' }[state.theme];
     $('theme-toggle').textContent = 'テーマ：' + themeLabel;
@@ -124,7 +132,7 @@
           if (!on.length) { body += seg; continue; }
           const done = on.every((it) => state.status[it.id]);
           const cls = ['m', 'cat-' + on[0].cat, on.length > 1 ? 'is-multi' : '', done ? 'is-done' : ''].join(' ');
-          const title = on.map((it) => `${R.CATS[it.cat].label}：${it.text} → ${it.suggest || '（削除）'}`).join('\n');
+          const title = on.map((it) => `${R.CATS[it.cat].label}：${it.text} → ${suggestOf(it) || '（削除）'}`).join('\n');
           body += `<mark class="${cls}" data-ids="${on.map((it) => it.id).join(',')}" title="${esc(title)}">${seg}</mark>`;
         }
       }
@@ -159,16 +167,20 @@
     }
     $('items').innerHTML = items.map((it) => {
       const st = state.status[it.id];
-      const to = it.suggest ? `<span class="to">${esc(it.suggest)}</span>` : '<span class="to del">（削除）</span>';
+      const sug = suggestOf(it);
+      const to = sug ? `<span class="to">${esc(sug)}</span>` : '<span class="to del">（削除）</span>';
+      const cands = it.cands ? `<div class="cands">候補：${it.cands.map((c) =>
+        `<button type="button" class="btn" data-act="cand" data-v="${esc(c)}" aria-pressed="${c === sug}">${esc(c)}</button>`).join('')}</div>` : '';
       return `<li class="item cat-${it.cat}${st ? ' is-' + st : ''}${state.active === it.id ? ' is-active' : ''}" data-id="${it.id}" tabindex="0">
         <div class="item-head"><span class="pill">${R.CATS[it.cat].label}</span><span class="loc">段落 ${it.p + 1}</span>${it.check ? '<span class="flag">要確認</span>' : ''}<span class="state">${st === 'done' ? '確認済み' : st === 'skip' ? '対象外' : ''}</span></div>
         <div class="change"><span class="from">${esc(it.text)}</span><span class="arrow">→</span>${to}</div>
+        ${cands}
         <div class="ctx">${context(it)}</div>
         <div class="note">${esc(it.note || '')}</div>
         <div class="actions">
           <button type="button" class="btn" data-act="done" aria-pressed="${st === 'done'}">確認済み</button>
           <button type="button" class="btn" data-act="skip" aria-pressed="${st === 'skip'}">対象外</button>
-          ${it.suggest ? '<button type="button" class="btn" data-act="copy">候補をコピー</button>' : ''}
+          ${sug ? '<button type="button" class="btn" data-act="copy">候補をコピー</button>' : ''}
         </div>
       </li>`;
     }).join('');
@@ -255,6 +267,18 @@
     return out;
   }
 
+  function yojiList() {
+    if (state.yoji === null) return [];
+    return C.yojiRules(state.yoji).map((r) => (r.pattern ? `（パターン）→ ${r.cands.join('／')}` : `${r.from} → ${r.cands.join('／')}`) + (r.check ? '［要確認］' : ''));
+  }
+
+  function renderYoji() {
+    const list = yojiList();
+    $('yoji-warn').hidden = state.yoji !== null;
+    $('yoji-count').textContent = state.yoji === null ? '' : `${list.length}語`;
+    $('yoji-list').innerHTML = list.map((t) => `<li>${esc(t)}</li>`).join('');
+  }
+
   function renderMonthly() {
     const list = monthlyTerms();
     $('monthly-warn').hidden = state.monthly !== null;
@@ -266,6 +290,7 @@
     $('terms-text').value = state.terms; $('user-text').value = state.userRules; $('excl-text').value = state.exclusions;
     $('rules-saved').hidden = true;
     renderMonthly();
+    renderYoji();
     openSheet('rules-sheet');
   }
 
@@ -302,6 +327,7 @@
 
   $('rules-open').addEventListener('click', openRules);
   $('monthly-badge').addEventListener('click', openRules);
+  $('yoji-badge').addEventListener('click', openRules);
   $('rules-save').addEventListener('click', () => {
     state.terms = $('terms-text').value; state.userRules = $('user-text').value; state.exclusions = $('excl-text').value;
     store.set('terms', state.terms); store.set('userRules', state.userRules); store.set('exclusions', state.exclusions);
@@ -326,7 +352,8 @@
     if (!card) return;
     const id = +card.dataset.id;
     const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'copy') { copyText(state.issues[id].suggest); return; }
+    if (act === 'copy') { copyText(suggestOf(state.issues[id])); return; }
+    if (act === 'cand') { state.choice[id] = e.target.closest('[data-act]').dataset.v; renderDoc(); renderList(); select(id, 'list'); return; }
     if (act === 'done' || act === 'skip') { setStatus(id, act); return; }
     select(id, 'list');
   });
@@ -361,9 +388,50 @@
     if (!items.length) { toast('コピーする指摘がありません'); return; }
     const lines = items.map((it) => {
       const st = state.status[it.id] === 'done' ? '［確認済み］' : state.status[it.id] === 'skip' ? '［対象外］' : '';
-      return `段落${it.p + 1}\t${it.text} → ${it.suggest || '（削除）'}\t${R.CATS[it.cat].label}${it.check ? '・要確認' : ''}\t${it.note || ''}${st}`;
+      return `段落${it.p + 1}\t${it.text} → ${suggestOf(it) || '（削除）'}\t${R.CATS[it.cat].label}${it.check ? '・要確認' : ''}\t${it.note || ''}${st}`;
     });
     copyText(`${state.name}　修正箇所 ${items.length}件\n` + lines.join('\n'));
+  });
+
+  // ── 修正文 ──
+  // 対象外・非表示の分類は除く。「要確認」は確認済みにしたものだけ（fixAll なら全部）
+  function fixResult() {
+    const use = state.issues.filter((it) => state.status[it.id] !== 'skip' && !state.hidden.has(it.cat)
+      && (!it.check || state.fixAll || state.status[it.id] === 'done'));
+    return C.applyFixes(state.paragraphs, use.map((it) => ({ ...it, suggest: suggestOf(it) })));
+  }
+
+  function renderFix() {
+    const res = fixResult();
+    const byP = new Map();
+    res.applied.forEach((a) => { if (!byP.has(a.p)) byP.set(a.p, []); byP.get(a.p).push(a); });
+    $('fix-doc').innerHTML = res.paragraphs.map((text, p) => {
+      let body = '', pos = 0;
+      for (const a of byP.get(p) || []) {
+        body += esc(text.slice(pos, a.newStart));
+        const title = esc(`${a.text} → ${a.suggest || '（削除）'}`);
+        body += a.newEnd > a.newStart
+          ? `<ins class="fx cat-${a.cat}" title="${title}">${esc(text.slice(a.newStart, a.newEnd))}</ins>`
+          : `<ins class="fx fx-del cat-${a.cat}" title="${title}"></ins>`;
+        pos = a.newEnd;
+      }
+      body += esc(text.slice(pos));
+      return `<p class="para"><span class="pno">${p + 1}</span><span class="ptext">${body}</span></p>`;
+    }).join('');
+    $('fix-summary').textContent = `${res.applied.length}か所を反映` + (res.conflicts.length ? `（重なる指摘 ${res.conflicts.length}件は反映せず）` : '');
+    return res;
+  }
+
+  $('fix-open').addEventListener('click', () => { $('fix-check').checked = state.fixAll; renderFix(); openSheet('fix-sheet'); });
+  $('fix-check').addEventListener('change', (e) => { state.fixAll = e.target.checked; renderFix(); });
+  $('fix-copy').addEventListener('click', () => copyText(fixResult().paragraphs.join('\n')));
+  $('fix-download').addEventListener('click', () => {
+    const text = '\uFEFF' + fixResult().paragraphs.join('\r\n') + '\r\n';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    a.download = state.name.replace(/\.[^.]+$/, '') + '_修正.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
   renderRuleTable();

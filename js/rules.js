@@ -38,6 +38,7 @@
     kigo:    { label: '記号・空白' },
     user:    { label: '追加ルール' },
     monthly: { label: '今月の用語' },
+    yoji:    { label: '用字用例' },
   };
 
   const MODES = {

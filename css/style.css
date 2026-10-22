@@ -20,6 +20,7 @@
   --kigo-bg: #e2e2dc;    --kigo: #56574f;
   --user-bg: #e9ddd0;    --user: #765236;
   --monthly-bg: #e0e5d0; --monthly: #55622a;
+  --yoji-bg: #f1dde8;    --yoji: #93406f;
 
   --font-ui: "BIZ UDPGothic", "BIZ UDPゴシック", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
   --font-doc: "BIZ UDPMincho", "BIZ UDP明朝", "Hiragino Mincho ProN", "Yu Mincho", serif;
@@ -39,6 +40,7 @@
     --kigo-bg: #33352f;    --kigo: #c3c4b9;
     --user-bg: #43352a;    --user: #ddbb9c;
     --monthly-bg: #363c25; --monthly: #c9d39a;
+    --yoji-bg: #45293a;    --yoji: #e7b0cd;
     color-scheme: dark;
   }
 }
@@ -54,6 +56,7 @@
   --kigo-bg: #33352f;    --kigo: #c3c4b9;
   --user-bg: #43352a;    --user: #ddbb9c;
   --monthly-bg: #363c25; --monthly: #c9d39a;
+  --yoji-bg: #45293a;    --yoji: #e7b0cd;
   color-scheme: dark;
 }
 
@@ -154,6 +157,7 @@ mark.m.is-multi { border-bottom-style: double; border-bottom-width: 3px; }
 .cat-kigo    { --mk: var(--kigo);    --mk-bg: var(--kigo-bg); }
 .cat-user    { --mk: var(--user);    --mk-bg: var(--user-bg); }
 .cat-monthly { --mk: var(--monthly); --mk-bg: var(--monthly-bg); }
+.cat-yoji    { --mk: var(--yoji);    --mk-bg: var(--yoji-bg); }
 
 /* 指摘一覧 */
 .issues-head h2 { display: flex; align-items: baseline; gap: 8px; }
@@ -196,7 +200,9 @@ mark.m.is-multi { border-bottom-style: double; border-bottom-width: 3px; }
 .note { font-size: 12.5px; }
 .actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .actions .btn { min-height: 28px; font-size: 12px; padding: 0 10px; }
-.actions .btn[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.cands { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.cands .btn { min-height: 26px; font-family: var(--font-doc); font-size: 14px; padding: 0 10px; }
+.cands .btn[aria-pressed="true"], .actions .btn[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
 .empty { padding: 32px 16px; text-align: center; color: var(--muted); }
 
 /* ドロップ・シート */
@@ -240,10 +246,20 @@ textarea {
 .rule-table tr:last-child td { border-bottom: 0; }
 .monthly { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
 .monthly-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.monthly-list li { font-family: var(--font-doc); padding: 2px 10px; border-radius: 4px; background: var(--monthly-bg); color: var(--ink); }
+.monthly-list li { font-family: var(--font-doc); padding: 2px 10px; border-radius: 4px; background: var(--mk-bg, var(--monthly-bg)); color: var(--ink); }
+.yoji-list { max-height: 9.5em; overflow: auto; }
 .monthly-warn { color: var(--chofuku); font-size: 12.5px; }
+.foot-links { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+#yoji-badge { color: var(--yoji); }
 button.link { border: 0; background: none; padding: 0; color: var(--monthly); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 code { font-size: 12px; padding: 0 4px; border-radius: 3px; background: var(--bg); }
+
+/* 修正文 */
+.fix-opts { display: grid; gap: 4px; }
+.fix-scroll { border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); max-height: 60vh; overflow: auto; }
+.fix-doc { padding: 16px 20px 24px; }
+ins.fx { text-decoration: none; background: var(--mk-bg); border-bottom: 2px solid var(--mk); border-radius: 2px; padding: 0 1px; }
+ins.fx-del { display: inline-block; width: 0.5em; height: 1em; vertical-align: -0.1em; border-left: 2px solid var(--mk); border-bottom: 0; background: none; padding: 0; }
 
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;
