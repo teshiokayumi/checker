@@ -1,3 +1,67 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>会見録チェッカー</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDPMincho&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <h1>会見録チェッカー</h1>
+    <p>表記メモに沿って修正箇所を示します。本文は書き換えません。</p>
+    <p>表記メモと用字用例に沿って修正箇所を示します。本文は書き換えず、修正文は別に作れます。</p>
+  </div>
+  <div class="controls">
+    <label class="btn btn-primary" for="file-input">Wordを開く
+      <input id="file-input" type="file" accept=".docx,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
+    </label>
+    <button class="btn" id="paste-open" type="button">テキストを貼り付け</button>
+    <div class="seg" role="radiogroup" aria-label="会見の種別" id="mode-seg">
+      <button type="button" role="radio" data-mode="teirei" id="mode-teirei">定例記者会見</button>
+      <button type="button" role="radio" data-mode="odekake" id="mode-odekake">お出かけ知事室</button>
+    </div>
+    <div class="size" aria-label="本文の文字サイズ">
+      <button class="btn btn-icon" id="size-down" type="button" title="文字を小さく">A−</button>
+      <button class="btn btn-icon" id="size-up" type="button" title="文字を大きく">A＋</button>
+    </div>
+    <button class="btn" id="theme-toggle" type="button" title="表示テーマを切り替え">テーマ：自動</button>
+    <button class="btn" id="rules-open" type="button">ルール</button>
+  </div>
+</header>
+
+<main class="panes">
+  <section class="pane pane-doc" aria-label="Word本文">
+    <div class="pane-head">
+      <h2 id="doc-name">サンプル原稿</h2>
+      <span class="tag" id="doc-tag">サンプル</span>
+      <span class="mode-hint" id="mode-hint"></span>
+    </div>
+    <div class="doc-scroll" id="doc-scroll">
+      <article class="doc" id="doc"></article>
+    </div>
+    <div class="pane-foot"><span id="doc-stats"></span><button type="button" class="link" id="monthly-badge"></button></div>
+    <div class="pane-foot"><span id="doc-stats"></span><span class="foot-links"><button type="button" class="link" id="yoji-badge"></button><button type="button" class="link" id="monthly-badge"></button></span></div>
+  </section>
+
+  <section class="pane pane-issues" aria-label="修正箇所">
+    <div class="pane-head issues-head">
+      <h2>修正箇所 <span class="count" id="count-total">0</span></h2>
+      <span class="sub" id="count-open"></span>
+      <div class="nav">
+        <button class="btn btn-icon" id="prev" type="button" title="前の箇所（K）">↑</button>
+        <button class="btn btn-icon" id="next" type="button" title="次の箇所（J）">↓</button>
+        <button class="btn" id="copy-all" type="button">一覧をコピー</button>
+        <button class="btn btn-primary" id="fix-open" type="button">修正文を作成</button>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="chips" id="chips"></div>
   <div class="sheet sheet-wide" role="dialog" aria-modal="true" aria-labelledby="rules-title">
     <div class="sheet-head">
       <h2 id="rules-title">ルール</h2>
