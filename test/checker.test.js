@@ -41,4 +41,17 @@ const u = C.check(['皆様のご協力を'], { userRules: '皆様→皆さま # 
 assert.strictEqual(u[0].suggest, '皆さま');
 assert.strictEqual(C.check(['世の中です'], { exclusions: ['世の中'] }).length, 0);
 assert.strictEqual(C.detectMode(paras), 'teirei');
+// 今月の用語（今月の用語.txt を実際に読み込む）
+let monthly = '';
+global.KAIKEN_MONTHLY = (t) => { monthly = t; };
+require('vm').runInThisContext(fs.readFileSync(path.join(__dirname, '..', '今月の用語.txt'), 'utf8'));
+assert.ok(monthly.includes('熊本こころのケアセンター'));
+const mi = C.check(paras, { mode: 'teirei', monthly });
+const mp = paras.findIndex((t) => t.startsWith('また'));
+assert.deepStrictEqual(mi.filter((i) => i.p === mp).map((i) => `${i.text}→${i.suggest}`), ['熊本心のケアセンター→熊本こころのケアセンター']);
+const ex = C.check(['熊本心のケアセンター'], { monthly: '熊本心のケアセンター→熊本こころのケアセンター # 正式名称' });
+assert.strictEqual(ex[0].suggest, '熊本こころのケアセンター');
+assert.strictEqual(ex[0].note, '正式名称');
+assert.strictEqual(C.check(['私は熊本心のケアセンターへ'], { monthly: '熊本こころのケアセンター' })[0].text, '熊本心のケアセンター');
+
 console.log(`ok (${issues.length} issues)`);

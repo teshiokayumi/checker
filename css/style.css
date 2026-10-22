@@ -19,6 +19,7 @@
   --shiryo-bg: #d4e9e6;  --shiryo: #2c6a64;
   --kigo-bg: #e2e2dc;    --kigo: #56574f;
   --user-bg: #e9ddd0;    --user: #765236;
+  --monthly-bg: #e0e5d0; --monthly: #55622a;
 
   --font-ui: "BIZ UDPGothic", "BIZ UDPゴシック", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
   --font-doc: "BIZ UDPMincho", "BIZ UDP明朝", "Hiragino Mincho ProN", "Yu Mincho", serif;
@@ -37,6 +38,7 @@
     --shiryo-bg: #233f3c;  --shiryo: #9dd3cc;
     --kigo-bg: #33352f;    --kigo: #c3c4b9;
     --user-bg: #43352a;    --user: #ddbb9c;
+    --monthly-bg: #363c25; --monthly: #c9d39a;
     color-scheme: dark;
   }
 }
@@ -51,6 +53,7 @@
   --shiryo-bg: #233f3c;  --shiryo: #9dd3cc;
   --kigo-bg: #33352f;    --kigo: #c3c4b9;
   --user-bg: #43352a;    --user: #ddbb9c;
+  --monthly-bg: #363c25; --monthly: #c9d39a;
   color-scheme: dark;
 }
 
@@ -118,7 +121,7 @@ label.btn:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pane-head h2 { font-size: 14px; overflow-wrap: anywhere; }
 .tag { font-size: 11px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
 .mode-hint { font-size: 12px; color: var(--muted); margin-left: auto; }
-.pane-foot { padding: 6px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pane-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 6px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* 原稿 */
 .doc-scroll { flex: 1; min-height: 0; overflow: auto; background: var(--paper); }
@@ -150,6 +153,7 @@ mark.m.is-multi { border-bottom-style: double; border-bottom-width: 3px; }
 .cat-shiryo  { --mk: var(--shiryo);  --mk-bg: var(--shiryo-bg); }
 .cat-kigo    { --mk: var(--kigo);    --mk-bg: var(--kigo-bg); }
 .cat-user    { --mk: var(--user);    --mk-bg: var(--user-bg); }
+.cat-monthly { --mk: var(--monthly); --mk-bg: var(--monthly-bg); }
 
 /* 指摘一覧 */
 .issues-head h2 { display: flex; align-items: baseline; gap: 8px; }
@@ -234,6 +238,12 @@ textarea {
 .rule-table td:first-child { color: var(--mk); font-weight: 700; white-space: nowrap; }
 .rule-table td:nth-child(2), .rule-table td:nth-child(3) { font-family: var(--font-doc); white-space: nowrap; }
 .rule-table tr:last-child td { border-bottom: 0; }
+.monthly { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+.monthly-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.monthly-list li { font-family: var(--font-doc); padding: 2px 10px; border-radius: 4px; background: var(--monthly-bg); color: var(--ink); }
+.monthly-warn { color: var(--chofuku); font-size: 12.5px; }
+button.link { border: 0; background: none; padding: 0; color: var(--monthly); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+code { font-size: 12px; padding: 0 4px; border-radius: 3px; background: var(--bg); }
 
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;

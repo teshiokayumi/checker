@@ -44,7 +44,7 @@
     <div class="doc-scroll" id="doc-scroll">
       <article class="doc" id="doc"></article>
     </div>
-    <div class="pane-foot" id="doc-stats"></div>
+    <div class="pane-foot"><span id="doc-stats"></span><button type="button" class="link" id="monthly-badge"></button></div>
   </section>
 
   <section class="pane pane-issues" aria-label="修正箇所">
@@ -88,6 +88,13 @@
       <button class="btn btn-icon" type="button" data-close title="閉じる">×</button>
     </div>
     <div class="sheet-body">
+      <section class="monthly cat-monthly" aria-labelledby="monthly-title">
+        <h3 id="monthly-title">今月の用語 <span class="sub" id="monthly-count"></span></h3>
+        <ul class="monthly-list" id="monthly-list"></ul>
+        <p class="monthly-warn" id="monthly-warn" hidden>「今月の用語.txt」を読み込めませんでした。index.html と同じフォルダにあるか、「ここから」「ここまで」の行や記号 ` を消していないか確認してください。</p>
+        <p class="field-help">チェッカーと同じフォルダの <code>今月の用語.txt</code> をメモ帳で開き、1行に1語ずつ追加して保存すると、このフォルダを使う全員に反映されます（開き直すと反映）。誤りやすい表記は <code>熊本心のケアセンター→熊本こころのケアセンター</code> のように書けます。</p>
+      </section>
+      <h3>このパソコンだけのルール</h3>
       <div class="fields">
         <label class="field" for="terms-text">
           <span class="field-label">資料表記（そのまま使う語）</span>
@@ -125,6 +132,8 @@
 <script src="vendor/mammoth.browser.min.js"></script>
 <script src="js/rules.js"></script>
 <script src="js/checker.js"></script>
+<script>function KAIKEN_MONTHLY(text) { window.KaikenMonthly = String(text); }</script>
+<script src="今月の用語.txt" charset="utf-8"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

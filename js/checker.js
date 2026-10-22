@@ -74,18 +74,56 @@
     return out;
   }
 
+  // 今月の用語：1行に「正しい表記」または「誤表記→正しい表記 # メモ」
+  // 正しい表記は他のチェックの対象外にし、途中のひらがな・漢字だけが違う表記（熊本心のケアセンター など）も指摘する
+  function monthlyRules(text) {
+    const { K, HIRA, KATA } = CHARS;
+    const rules = [], terms = [];
+    const type = (c) => (new RegExp(`[${HIRA}]`).test(c) ? 'h' : new RegExp(`[${K}]`).test(c) ? 'k' : new RegExp(`[${KATA}]`).test(c) ? 'c' : 'o');
+    String(text || '').split(/\r?\n/).forEach((line, i) => {
+      const body = line.replace(/\s+#.*$/, '').trim();
+      if (!body || body.startsWith('#')) return;
+      const memo = (line.match(/\s#\s*(.*)$/) || [])[1] || '';
+      const parts = body.split(/\s*(?:→|->|=>|⇒)\s*/);
+      if (parts.length > 1) {
+        const [from, to] = [parts[0], parts.slice(1).join('')];
+        if (!from || !to) return;
+        terms.push(to);
+        rules.push({ id: 'monthly:' + i, cat: 'monthly', from, to, protect: 'none', re: new RegExp(escRe(from), 'g'),
+          note: memo || `今月の用語：「${to}」と表記` });
+        return;
+      }
+      const term = body;
+      terms.push(term);
+      const runs = [];
+      for (const c of term) {
+        const t = type(c);
+        if (runs.length && runs[runs.length - 1].t === t) runs[runs.length - 1].s += c;
+        else runs.push({ t, s: c });
+      }
+      const loose = (r, j) => j > 0 && j < runs.length - 1 && (r.t === 'h' || r.t === 'k');
+      if (!runs.some(loose)) return;
+      const src = runs.map((r, j) => (loose(r, j) ? `[${HIRA}${K}${KATA}]{1,${r.s.length * 3}}` : escRe(r.s))).join('');
+      rules.push({ id: 'monthly:' + i, cat: 'monthly', from: term, to: term, protect: 'none', re: new RegExp(src, 'g'), check: true,
+        filter: (m) => m[0].length >= term.length * 0.6 && m[0].length <= term.length * 1.5,
+        note: memo || `今月の用語：「${term}」と表記が違う可能性があります` });
+    });
+    return { rules, terms };
+  }
+
   const parseList = (text) => String(text || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
 
   /**
    * paragraphs: string[]
-   * opts: { mode, terms: string[], userRules: string, exclusions: string[] }
+   * opts: { mode, terms: string[], userRules: string, exclusions: string[], monthly: string }
    * returns: [{ id, p, start, end, text, suggest, cat, ruleId, note, check }]
    */
   function check(paragraphs, opts = {}) {
     const mode = opts.mode || 'teirei';
+    const monthly = monthlyRules(opts.monthly);
     const rules = RULES.filter((r) => !r.mode || r.mode === mode)
-      .concat(termRules(opts.terms), parseUserRules(opts.userRules));
-    const exclusions = (opts.exclusions || []).filter(Boolean);
+      .concat(termRules(opts.terms), parseUserRules(opts.userRules), monthly.rules);
+    const exclusions = (opts.exclusions || []).concat(monthly.terms).filter(Boolean);
     const issues = [];
     const seen = new Set();
 
@@ -130,5 +168,5 @@
   // Word から取り出したテキストを段落に分ける
   const toParagraphs = (raw) => String(raw || '').replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim() !== '');
 
-  return { check, detectMode, toParagraphs, parseUserRules, parseList, termRules };
+  return { check, detectMode, toParagraphs, parseUserRules, parseList, termRules, monthlyRules };
 });

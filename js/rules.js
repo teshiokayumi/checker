@@ -37,6 +37,7 @@
     shiryo:  { label: '資料表記' },
     kigo:    { label: '記号・空白' },
     user:    { label: '追加ルール' },
+    monthly: { label: '今月の用語' },
   };
 
   const MODES = {

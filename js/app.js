@@ -14,6 +14,7 @@
     '既に一人一人の生産者の方々からも、どんどんどんどん声が上がっていて、そういった形を目がけて、新しい仕組みを作るということを、是非受け止めていただければと思います。',
     'いわゆるインバウンドとか、若い世代とか、そういう方々にも分かるような形で、、情報を届けていくっていうことが大事だと思っています。',
     'なお、九州・山口の「ブルゴーニュ」と呼ばれる産地の皆さんとは、期間中に意見が分かれる点も含めて協議します。',
+    'また、熊本心のケアセンターと連携し、熊本こころのケアセンターの相談窓口も周知していきます。',
     'では、私からは以上です。',
   ];
 
@@ -32,6 +33,7 @@
     terms: store.get('terms', R.DEFAULT_TERMS.join('\n')),
     userRules: store.get('userRules', ''),
     exclusions: store.get('exclusions', ''),
+    monthly: typeof window.KaikenMonthly === 'string' ? window.KaikenMonthly : null,
     issues: [],
     status: {},              // id -> 'done' | 'skip'
     hidden: new Set(),       // 非表示の分類
@@ -68,6 +70,7 @@
       terms: C.parseList(state.terms),
       userRules: state.userRules,
       exclusions: C.parseList(state.exclusions),
+      monthly: state.monthly || '',
     });
     state.status = {};
     state.active = null;
@@ -91,6 +94,7 @@
     $('mode-hint').textContent = `${m.label}：${m.hint}` + (state.detected ? '（本文から判定）' : '');
     const chars = state.paragraphs.reduce((n, p) => n + p.length, 0);
     $('doc-stats').textContent = `${state.paragraphs.length} 段落 ・ ${chars.toLocaleString()} 字`;
+    $('monthly-badge').textContent = state.monthly === null ? '今月の用語：読み込めません' : `今月の用語：${monthlyTerms().length}語`;
     document.documentElement.style.setProperty('--doc-size', state.size + 'px');
     const themeLabel = { system: '自動', light: 'ライト', dark: 'ダーク' }[state.theme];
     $('theme-toggle').textContent = 'テーマ：' + themeLabel;
@@ -243,6 +247,28 @@
     }).join('');
   }
 
+  function monthlyTerms() {
+    if (state.monthly === null) return [];
+    const { rules, terms } = C.monthlyRules(state.monthly);
+    const out = [...new Set(terms)];
+    rules.forEach((r) => { if (r.from !== r.to && !out.includes(r.from + ' → ' + r.to)) out.push(r.from + ' → ' + r.to); });
+    return out;
+  }
+
+  function renderMonthly() {
+    const list = monthlyTerms();
+    $('monthly-warn').hidden = state.monthly !== null;
+    $('monthly-count').textContent = state.monthly === null ? '' : `${list.length}語`;
+    $('monthly-list').innerHTML = list.map((t) => `<li>${esc(t)}</li>`).join('');
+  }
+
+  function openRules() {
+    $('terms-text').value = state.terms; $('user-text').value = state.userRules; $('excl-text').value = state.exclusions;
+    $('rules-saved').hidden = true;
+    renderMonthly();
+    openSheet('rules-sheet');
+  }
+
   // ── イベント ──
   $('file-input').addEventListener('change', (e) => { openFile(e.target.files[0]); e.target.value = ''; });
 
@@ -274,11 +300,8 @@
     closeSheets(); load('貼り付けたテキスト', v);
   });
 
-  $('rules-open').addEventListener('click', () => {
-    $('terms-text').value = state.terms; $('user-text').value = state.userRules; $('excl-text').value = state.exclusions;
-    $('rules-saved').hidden = true;
-    openSheet('rules-sheet');
-  });
+  $('rules-open').addEventListener('click', openRules);
+  $('monthly-badge').addEventListener('click', openRules);
   $('rules-save').addEventListener('click', () => {
     state.terms = $('terms-text').value; state.userRules = $('user-text').value; state.exclusions = $('excl-text').value;
     store.set('terms', state.terms); store.set('userRules', state.userRules); store.set('exclusions', state.exclusions);
