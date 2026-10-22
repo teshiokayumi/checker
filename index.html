@@ -19,6 +19,29 @@
   </div>
   <div class="controls">
     <label class="btn btn-primary" for="file-input">Wordを開く
+      <input id="file-input" type="file" accept=".docx,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
+    </label>
+    <button class="btn" id="paste-open" type="button">テキストを貼り付け</button>
+    <div class="seg" role="radiogroup" aria-label="会見の種別" id="mode-seg">
+      <button type="button" role="radio" data-mode="teirei" id="mode-teirei">定例記者会見</button>
+      <button type="button" role="radio" data-mode="odekake" id="mode-odekake">お出かけ知事室</button>
+    </div>
+    <div class="size" aria-label="本文の文字サイズ">
+      <button class="btn btn-icon" id="size-down" type="button" title="文字を小さく">A−</button>
+      <button class="btn btn-icon" id="size-up" type="button" title="文字を大きく">A＋</button>
+    </div>
+    <button class="btn" id="theme-toggle" type="button" title="表示テーマを切り替え">テーマ：自動</button>
+    <button class="btn" id="rules-open" type="button">ルール</button>
+  </div>
+</header>
+
+<main class="panes">
+  <section class="pane pane-doc" aria-label="Word本文">
+    <div class="pane-head">
+      <h2 id="doc-name">サンプル原稿</h2>
+      <span class="tag" id="doc-tag">サンプル</span>
+      <span class="mode-hint" id="mode-hint"></span>
+    </div>
     <div class="doc-scroll" id="doc-scroll">
       <article class="doc" id="doc"></article>
     </div>
@@ -27,6 +50,10 @@
   </section>
 
   <section class="pane pane-issues" aria-label="修正箇所">
+    <div class="pane-head issues-head">
+      <h2>修正箇所 <span class="count" id="count-total">0</span></h2>
+      <span class="sub" id="count-open"></span>
+      <div class="nav">
         <button class="btn btn-icon" id="prev" type="button" title="前の箇所（K）">↑</button>
         <button class="btn btn-icon" id="next" type="button" title="次の箇所（J）">↓</button>
         <button class="btn" id="copy-all" type="button">一覧をコピー</button>
@@ -34,32 +61,4 @@
       </div>
     </div>
     <div class="filters">
-        <p class="monthly-warn" id="monthly-warn" hidden>「今月の用語.txt」を読み込めませんでした。index.html と同じフォルダにあるか、「ここから」「ここまで」の行や記号 ` を消していないか確認してください。</p>
-        <p class="field-help">チェッカーと同じフォルダの <code>今月の用語.txt</code> をメモ帳で開き、1行に1語ずつ追加して保存すると、このフォルダを使う全員に反映されます（開き直すと反映）。誤りやすい表記は <code>熊本心のケアセンター→熊本こころのケアセンター</code> のように書けます。</p>
-      </section>
-      <section class="monthly cat-yoji" aria-labelledby="yoji-title">
-        <h3 id="yoji-title">用字用例 <span class="sub" id="yoji-count"></span></h3>
-        <ul class="monthly-list yoji-list" id="yoji-list"></ul>
-        <p class="monthly-warn" id="yoji-warn" hidden>「用字用例.txt」を読み込めませんでした。index.html と同じフォルダにあるか、「ここから」「ここまで」の行や記号 ` を消していないか確認してください。</p>
-        <p class="field-help">標準用字用例辞典の書きかえ・言いかえは、チェッカーと同じフォルダの <code>用字用例.txt</code> に <code>斡旋→あっせん</code> のように1行に1つ書きます。候補が複数なら <code>齟齬→食い違い／ずれ</code>、文脈で直さないこともある語は行頭に <code>？</code> を付けます。</p>
-      </section>
-      <h3>このパソコンだけのルール</h3>
-      <div class="fields">
-        <label class="field" for="terms-text">
-  </div>
-</div>
-
-<div class="sheet-wrap" id="fix-sheet" hidden>
-  <div class="sheet sheet-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title">
-    <div class="sheet-head">
-      <h2 id="fix-title">修正文 <span class="sub" id="fix-summary"></span></h2>
-      <button class="btn btn-icon" type="button" data-close title="閉じる">×</button>
-    </div>
-    <div class="sheet-body">
-      <div class="fix-opts">
-        <label class="check"><input type="checkbox" id="fix-check"> 「要確認」の指摘もすべて反映する</label>
-        <span class="field-help">対象外にした指摘と、非表示の分類は反映しません。「要確認」は確認済みにしたものだけ反映します。元の本文は変わりません。</span>
-      </div>
-      <div class="fix-scroll"><article class="doc fix-doc" id="fix-doc"></article></div>
-    </div>
-    <div class="sheet-foot">
+      <div class="chips" id="chips"></div>
